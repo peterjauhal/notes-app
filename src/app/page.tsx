@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { Note } from '@/types/note';
 import AddNoteForm from '@/components/AddNoteForm';
 import NoteCard from '@/components/NoteCard';
+import SearchBar from '@/components/SearchBar';
 
 export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const savedNotes = localStorage.getItem('notes');
@@ -43,13 +45,22 @@ export default function Home() {
     );
   };
 
+  const filteredNotes = notes.filter((note) => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      note.title.toLowerCase().includes(searchLower) ||
+      note.content.toLowerCase().includes(searchLower)
+    );
+  });
+
   return (
     <main className="min-h-screen p-4 bg-gray-100">
       <div className="max-w-2xl mx-auto">
         <h1 className="mb-8 text-3xl font-bold text-center">My Notes</h1>
+        <SearchBar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         <AddNoteForm onAdd={addNote} />
         <div className="space-y-4">
-          {notes.map((note) => (
+          {filteredNotes.map((note) => (
             <NoteCard
               key={note.id}
               note={note}
