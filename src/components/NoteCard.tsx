@@ -1,5 +1,6 @@
 import { Note } from '@/types/note';
 import { useState } from 'react';
+import TagInput from './TagInput';
 
 interface NoteCardProps {
   note: Note;
@@ -11,12 +12,14 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(note.title);
   const [editedContent, setEditedContent] = useState(note.content);
+  const [editedTags, setEditedTags] = useState(note.tags);
 
   const handleSave = () => {
     onEdit({
       ...note,
       title: editedTitle,
       content: editedContent,
+      tags: editedTags,
       updatedAt: new Date(),
     });
     setIsEditing(false);
@@ -36,6 +39,7 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
           onChange={(e) => setEditedContent(e.target.value)}
           className="w-full h-32 p-2 border rounded focus:outline-none focus:border-blue-500"
         />
+        <TagInput tags={editedTags} onTagsChange={setEditedTags} />
         <div className="flex justify-end gap-2 mt-4">
           <button
             onClick={() => setIsEditing(false)}
@@ -58,6 +62,18 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
     <div className="p-4 bg-white rounded-lg shadow-md">
       <h3 className="mb-2 text-lg font-semibold">{note.title}</h3>
       <p className="mb-4 text-gray-600">{note.content}</p>
+      {note.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {note.tags.map((tag) => (
+            <span
+              key={tag}
+              className="px-2 py-1 text-sm bg-blue-100 text-blue-700 rounded-full"
+            >
+              #{tag}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="flex justify-end gap-2">
         <button
           onClick={() => setIsEditing(true)}

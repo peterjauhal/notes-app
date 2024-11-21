@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Note } from '@/types/note';
+import TagInput from './TagInput';
 
 interface AddNoteFormProps {
   onAdd: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
@@ -8,6 +9,7 @@ interface AddNoteFormProps {
 export default function AddNoteForm({ onAdd }: AddNoteFormProps) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,10 +18,12 @@ export default function AddNoteForm({ onAdd }: AddNoteFormProps) {
     onAdd({
       title: title.trim(),
       content: content.trim(),
+      tags,
     });
 
     setTitle('');
     setContent('');
+    setTags([]);
   };
 
   return (
@@ -39,6 +43,7 @@ export default function AddNoteForm({ onAdd }: AddNoteFormProps) {
         className="w-full h-32 p-2 mb-4 border rounded focus:outline-none focus:border-blue-500"
         required
       />
+      <TagInput tags={tags} onTagsChange={setTags} />
       <button
         type="submit"
         className="w-full py-2 text-white bg-blue-500 rounded hover:bg-blue-600"
