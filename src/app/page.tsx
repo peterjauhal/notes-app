@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Note } from '@/types/note';
+import { supabase } from '@/lib/supabase';
 import AddNoteForm from '@/components/AddNoteForm';
 import NoteCard from '@/components/NoteCard';
 import SearchBar from '@/components/SearchBar';
@@ -11,66 +12,128 @@ export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedNotes = localStorage.getItem('notes');
-    if (savedNotes) {
-      setNotes(JSON.parse(savedNotes).map((note: any) => ({
-        ...note,
-        tags: note.tags || [], // Handle existing notes without tags
-        createdAt: new Date(note.createdAt),
-        updatedAt: new Date(note.updatedAt),
-      })));
-    }
+    fetchNotes();
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('notes', JSON.stringify(notes));
-  }, [notes]);
+  async function fetchNotes() {
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-  const addNote = (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newNote: Note = {
-      id: crypto.randomUUID(),
-      ...noteData,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    setNotes((prev) => [newNote, ...prev]);
+      if (error) throw error;
+
+      const formattedNotes = data.map((note: any) => ({
+        ...note,
+        createdAt: new Date(note.created_at),
+        updatedAt: new Date(note.updated_at),
+        tags: note.tags || []
+      }));
+
+      setNotes(formattedNotes);
+    } catch (error) {
+      console.error('Error fetching notes:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+    try {
+      const { data, error } = await supabase
+        .from('notes')
+        .insert([{
+          title: noteData.title,
+          content: noteData.content,
+          tags: noteData.tags
+        }])
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      const newNote: Note = {
+        ...data,
+        createdAt: new Date(data.created_at),
+        updatedAt: new Date(data.updated_at),
+        tags: data.tags || []
+      };
+
+      setNotes(prev => [newNote, ...prev]);
+    } catch (error) {
+      console.error('Error adding note:', error);
+    }
   };
 
-  const deleteNote = (id: string) => {
-    setNotes((prev) => prev.filter((note) => note.id !== id));
+  const deleteNote = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setNotes(prev => prev.filter(note => note.id !== id));
+    } catch (error) {
+      console.error('Error deleting note:', error);
+    }
   };
 
-  const editNote = (updatedNote: Note) => {
-    setNotes((prev) =>
-      prev.map((note) => (note.id === updatedNote.id ? updatedNote : note))
-    );
+  const editNote = async (updatedNote: Note) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({
+          title: updatedNote.title,
+          content: updatedNote.content,
+          tags: updatedNote.tags,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', updatedNote.id);
+
+      if (error) throw error;
+
+      setNotes(prev =>
+        prev.map(note => (note.id === updatedNote.id ? updatedNote : note))
+      );
+    } catch (error) {
+      console.error('Error updating note:', error);
+    }
   };
 
-  // Get all unique tags from all notes
   const allTags = Array.from(
-    new Set(notes.flatMap((note) => note.tags))
+    new Set(notes.flatMap(note => note.tags))
   ).sort();
 
   const handleTagSelect = (tag: string) => {
-    setSelectedTags((prev) =>
+    setSelectedTags(prev =>
       prev.includes(tag)
-        ? prev.filter((t) => t !== tag)
+        ? prev.filter(t => t !== tag)
         : [...prev, tag]
     );
   };
 
-  const filteredNotes = notes.filter((note) => {
-    const matchesSearch = searchQuery.toLowerCase().trim() === '' || 
+  const filteredNotes = notes.filter(note => {
+    const matchesSearch = searchQuery.toLowerCase().trim() === '' ||
       note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       note.content.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesTags = selectedTags.length === 0 ||
-      selectedTags.every((tag) => note.tags.includes(tag));
+      selectedTags.every(tag => note.tags.includes(tag));
 
     return matchesSearch && matchesTags;
   });
+
+  if (loading) {
+    return <div className="flex justify-center items-center min-h-screen">
+      <p>Loading notes...</p>
+    </div>;
+  }
 
   return (
     <main className="min-h-screen p-4 bg-gray-100">
@@ -88,7 +151,7 @@ export default function Home() {
         </div>
         <AddNoteForm onAdd={addNote} />
         <div className="space-y-4">
-          {filteredNotes.map((note) => (
+          {filteredNotes.map(note => (
             <NoteCard
               key={note.id}
               note={note}
