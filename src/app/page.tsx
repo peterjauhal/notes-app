@@ -12,13 +12,13 @@ export default function Home() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     fetchNotes();
   }, []);
 
-  async function fetchNotes() {
+  const fetchNotes = async () => {
     try {
       const { data, error } = await supabase
         .from('notes')
@@ -27,20 +27,17 @@ export default function Home() {
 
       if (error) throw error;
 
-      const formattedNotes = data.map((note: any) => ({
+      setNotes(data.map((note: any) => ({
         ...note,
         createdAt: new Date(note.created_at),
         updatedAt: new Date(note.updated_at),
-        tags: note.tags || []
-      }));
-
-      setNotes(formattedNotes);
+      })));
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
-  }
+  };
 
   const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -49,23 +46,44 @@ export default function Home() {
         .insert([{
           title: noteData.title,
           content: noteData.content,
-          tags: noteData.tags
+          tags: noteData.tags,
         }])
         .select()
         .single();
 
       if (error) throw error;
 
-      const newNote: Note = {
+      setNotes(prev => [{
         ...data,
         createdAt: new Date(data.created_at),
         updatedAt: new Date(data.updated_at),
-        tags: data.tags || []
-      };
-
-      setNotes(prev => [newNote, ...prev]);
+      }, ...prev]);
     } catch (error) {
       console.error('Error adding note:', error);
+    }
+  };
+
+  const editNote = async (updatedNote: Note) => {
+    try {
+      const { error } = await supabase
+        .from('notes')
+        .update({
+          title: updatedNote.title,
+          content: updatedNote.content,
+          tags: updatedNote.tags,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', updatedNote.id);
+
+      if (error) throw error;
+
+      setNotes(prev => prev.map(note => 
+        note.id === updatedNote.id 
+          ? { ...updatedNote, updatedAt: new Date() }
+          : note
+      ));
+    } catch (error) {
+      console.error('Error updating note:', error);
     }
   };
 
@@ -81,28 +99,6 @@ export default function Home() {
       setNotes(prev => prev.filter(note => note.id !== id));
     } catch (error) {
       console.error('Error deleting note:', error);
-    }
-  };
-
-  const editNote = async (updatedNote: Note) => {
-    try {
-      const { error } = await supabase
-        .from('notes')
-        .update({
-          title: updatedNote.title,
-          content: updatedNote.content,
-          tags: updatedNote.tags,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', updatedNote.id);
-
-      if (error) throw error;
-
-      setNotes(prev =>
-        prev.map(note => (note.id === updatedNote.id ? updatedNote : note))
-      );
-    } catch (error) {
-      console.error('Error updating note:', error);
     }
   };
 
@@ -129,7 +125,7 @@ export default function Home() {
     return matchesSearch && matchesTags;
   });
 
-  if (loading) {
+  if (isLoading) {
     return <div className="flex justify-center items-center min-h-screen">
       <p>Loading notes...</p>
     </div>;
