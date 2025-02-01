@@ -14,6 +14,16 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
   const [editedContent, setEditedContent] = useState(note.content);
   const [editedTags, setEditedTags] = useState(note.tags);
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   const handleSave = () => {
     onEdit({
       ...note,
@@ -74,6 +84,11 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
           ))}
         </div>
       )}
+      <div className="text-sm text-gray-500 mt-2">
+        Created: {formatDate(note.created_at)}
+        {note.updated_at !== note.created_at && 
+          ` • Updated: ${formatDate(note.updated_at)}`}
+      </div>
       <div className="flex justify-end gap-2">
         <button
           onClick={() => setIsEditing(true)}

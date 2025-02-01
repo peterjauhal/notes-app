@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Note } from '@/types/note';
 import TagInput from './TagInput';
 
-interface AddNoteFormProps {
-  onAdd: (note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => void;
+type AddNoteFormProps = {
+  onAdd: (note: Omit<Note, 'id' | 'created_at' | 'updated_at'>) => void;
 }
 
 export default function AddNoteForm({ onAdd }: AddNoteFormProps) {

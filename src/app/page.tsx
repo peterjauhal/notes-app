@@ -27,11 +27,7 @@ export default function Home() {
 
       if (error) throw error;
 
-      setNotes(data.map((note: any) => ({
-        ...note,
-        createdAt: new Date(note.created_at),
-        updatedAt: new Date(note.updated_at),
-      })));
+      setNotes(data || []);
     } catch (error) {
       console.error('Error fetching notes:', error);
     } finally {
@@ -39,25 +35,17 @@ export default function Home() {
     }
   };
 
-  const addNote = async (noteData: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const addNote = async (noteData: Omit<Note, 'id' | 'created_at' | 'updated_at'>) => {
     try {
       const { data, error } = await supabase
         .from('notes')
-        .insert([{
-          title: noteData.title,
-          content: noteData.content,
-          tags: noteData.tags,
-        }])
+        .insert([noteData])
         .select()
         .single();
 
       if (error) throw error;
 
-      setNotes(prev => [{
-        ...data,
-        createdAt: new Date(data.created_at),
-        updatedAt: new Date(data.updated_at),
-      }, ...prev]);
+      setNotes(prev => [data, ...prev]);
     } catch (error) {
       console.error('Error adding note:', error);
     }
@@ -79,7 +67,7 @@ export default function Home() {
 
       setNotes(prev => prev.map(note => 
         note.id === updatedNote.id 
-          ? { ...updatedNote, updatedAt: new Date() }
+          ? { ...updatedNote, updated_at: new Date().toISOString() }
           : note
       ));
     } catch (error) {
