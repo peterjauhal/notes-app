@@ -30,7 +30,7 @@ export default function NoteCard({ note, onDelete, onEdit }: NoteCardProps) {
       title: editedTitle,
       content: editedContent,
       tags: editedTags,
-      updatedAt: new Date(),
+      updated_at: new Date().toISOString(),
     });
     setIsEditing(false);
   };
